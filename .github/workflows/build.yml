@@ -147,7 +147,7 @@ jobs:
           </manifest>
           EOF
 
-          # 7. MainActivity.java (完美復刻經典 Leica 白色底框與紅色圓標版型)
+          # 7. MainActivity.java (以寬度為基準計算浮水印，杜絕直式相片排版崩潰)
           cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.java
           package com.leica.watermark;
 
@@ -246,37 +246,39 @@ jobs:
               private Bitmap addLeicaWatermark(Bitmap src) {
                   int w = src.getWidth();
                   int h = src.getHeight();
-                  // 白色浮水印欄高度（依原圖比例動態調整，確保精緻度）
-                  int watermarkHeight = Math.max(220, h / 7);
+                  
+                  // 關鍵修復：改以圖片寬度 w 計算浮水印高度，避免直式相片高度過大導致排版崩潰
+                  int watermarkHeight = Math.max(140, w / 8);
 
-                  Bitmap result = Bitmap.createBitmap(w, h + watermarkHeight, src.getConfig());
+                  Bitmap.Config config = src.getConfig() != null ? src.getConfig() : Bitmap.Config.ARGB_8888;
+                  Bitmap result = Bitmap.createBitmap(w, h + watermarkHeight, config);
                   Canvas canvas = new Canvas(result);
                   canvas.drawBitmap(src, 0, 0, null);
 
-                  // 1. 畫白色底框
+                  // 1. 畫白色質感底框
                   Paint bgPaint = new Paint();
                   bgPaint.setColor(Color.WHITE);
                   canvas.drawRect(0, h, w, h + watermarkHeight, bgPaint);
 
-                  // 2. 畫左側文字（相機型號與時間）[span_3](start_span)[span_3](end_span)
+                  // 2. 左側文字區塊（安全字體大小）
                   Paint textPaintDark = new Paint();
                   textPaintDark.setColor(Color.parseColor("#121212"));
-                  textPaintDark.setTextSize(watermarkHeight * 0.32f);
+                  textPaintDark.setTextSize(watermarkHeight * 0.22f);
                   textPaintDark.setFakeBoldText(true);
                   textPaintDark.setAntiAlias(true);
 
                   Paint textPaintGray = new Paint();
                   textPaintGray.setColor(Color.parseColor("#666666"));
-                  textPaintGray.setTextSize(watermarkHeight * 0.22f);
+                  textPaintGray.setTextSize(watermarkHeight * 0.16f);
                   textPaintGray.setAntiAlias(true);
 
                   float leftMargin = w * 0.04f;
-                  canvas.drawText("LEICA M11  |  SUMMILUX-M 50mm", leftMargin, h + watermarkHeight * 0.42f, textPaintDark);
-                  canvas.drawText("2026.06.07  14:30", leftMargin, h + watermarkHeight * 0.78f, textPaintGray);
+                  canvas.drawText("LEICA M11", leftMargin, h + watermarkHeight * 0.40f, textPaintDark);
+                  canvas.drawText("SUMMILUX-M f/1.4", leftMargin, h + watermarkHeight * 0.74f, textPaintGray);
 
-                  // 3. 畫中間經典紅色 Leica 圓標[span_4](start_span)[span_4](end_span)
-                  float logoWidth = watermarkHeight * 1.6f;
-                  float logoHeight = watermarkHeight * 0.7f;
+                  // 3. 正中間經典紅色 Leica 圓標（嚴格置中）
+                  float logoWidth = watermarkHeight * 1.25f;
+                  float logoHeight = watermarkHeight * 0.52f;
                   float logoLeft = (w - logoWidth) / 2f;
                   float logoTop = h + (watermarkHeight - logoHeight) / 2f;
 
@@ -286,7 +288,6 @@ jobs:
                   RectF logoRect = new RectF(logoLeft, logoTop, logoLeft + logoWidth, logoTop + logoHeight);
                   canvas.drawRoundRect(logoRect, logoHeight / 2f, logoHeight / 2f, redPaint);
 
-                  // 在紅色圓標內畫白色 "Leica" 文字[span_5](start_span)[span_5](end_span)
                   Paint logoTextPaint = new Paint();
                   logoTextPaint.setColor(Color.WHITE);
                   logoTextPaint.setTextSize(logoHeight * 0.5f);
@@ -298,23 +299,23 @@ jobs:
                   float textY = logoTop + (logoHeight - (fm.descent - fm.ascent)) / 2f - fm.ascent;
                   canvas.drawText("Leica", logoLeft + logoWidth / 2f, textY, logoTextPaint);
 
-                  // 4. 畫右側參數與座標文字[span_6](start_span)[span_6](end_span)
+                  // 4. 右側參數與座標區塊（靠右對齊）
                   Paint textPaintRight = new Paint();
                   textPaintRight.setColor(Color.parseColor("#121212"));
-                  textPaintRight.setTextSize(watermarkHeight * 0.28f);
+                  textPaintRight.setTextSize(watermarkHeight * 0.22f);
                   textPaintRight.setFakeBoldText(true);
                   textPaintRight.setAntiAlias(true);
                   textPaintRight.setTextAlign(Paint.Align.RIGHT);
 
                   Paint textPaintRightGray = new Paint();
                   textPaintRightGray.setColor(Color.parseColor("#666666"));
-                  textPaintRightGray.setTextSize(watermarkHeight * 0.20f);
+                  textPaintRightGray.setTextSize(watermarkHeight * 0.16f);
                   textPaintRightGray.setAntiAlias(true);
                   textPaintRightGray.setTextAlign(Paint.Align.RIGHT);
 
                   float rightMargin = w - w * 0.04f;
-                  canvas.drawText("f/1.4  1/125s  ISO 100", rightMargin, h + watermarkHeight * 0.42f, textPaintRight);
-                  canvas.drawText("25°02'N  121°37'E", rightMargin, h + watermarkHeight * 0.78f, textPaintRightGray);
+                  canvas.drawText("1/125s ISO 100", rightMargin, h + watermarkHeight * 0.40f, textPaintRight);
+                  canvas.drawText("25°02'N 121°37'E", rightMargin, h + watermarkHeight * 0.74f, textPaintRightGray);
 
                   return result;
               }
@@ -339,4 +340,3 @@ jobs:
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-          
