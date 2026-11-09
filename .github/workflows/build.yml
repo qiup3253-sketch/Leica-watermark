@@ -75,7 +75,7 @@ jobs:
         }
         EOF
 
-        # 3. app/build.gradle
+        # 3. app/build.gradle (已補上必要的 namespace)
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -83,6 +83,7 @@ jobs:
         }
 
         android {
+            namespace 'com.leica.watermark'
             compileSdk 33
 
             defaultConfig {
@@ -116,7 +117,7 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml (已修正語法錯誤)
+        # 4. AndroidManifest.xml
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
