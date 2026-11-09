@@ -67,7 +67,7 @@ jobs:
           include(':app')
           EOF
 
-          # 2. 根目錄 build.gradle (純 Java，不需 Kotlin 外掛)
+          # 2. 根目錄 build.gradle
           cat << 'EOF' > build.gradle
           plugins {
               id 'com.android.application' version '7.4.2' apply false
@@ -127,6 +127,10 @@ jobs:
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+              <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
               <application
                   android:allowBackup="true"
                   android:label="Leica Watermark"
@@ -143,18 +147,33 @@ jobs:
           </manifest>
           EOF
 
-          # 7. MainActivity.java (改用純 Java 寫法，完美避開 Kotlin 編譯器崩潰)
+          # 7. MainActivity.java
           cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.java
           package com.leica.watermark;
 
           import android.app.Activity;
+          import android.content.Intent;
+          import android.graphics.Bitmap;
+          import android.graphics.BitmapFactory;
+          import android.graphics.Canvas;
           import android.graphics.Color;
+          import android.graphics.Paint;
+          import android.net.Uri;
           import android.os.Bundle;
+          import android.provider.MediaStore;
           import android.view.Gravity;
+          import android.widget.Button;
+          import android.widget.ImageView;
           import android.widget.LinearLayout;
-          import android.widget.TextView;
+          import android.widget.Toast;
+
+          import java.io.InputStream;
 
           public class MainActivity extends Activity {
+              private static final int PICK_IMAGE = 1;
+              private ImageView imageView;
+              private Bitmap selectedBitmap;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
@@ -163,14 +182,101 @@ jobs:
                   layout.setOrientation(LinearLayout.VERTICAL);
                   layout.setGravity(Gravity.CENTER);
                   layout.setBackgroundColor(Color.parseColor("#121212"));
+                  layout.setPadding(30, 30, 30, 30);
 
-                  TextView textView = new TextView(this);
-                  textView.setText("LEICA WATERMARK");
-                  textView.setTextColor(Color.parseColor("#E30613"));
-                  textView.setTextSize(24f);
-                  layout.addView(textView);
+                  imageView = new ImageView(this);
+                  LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT, 700
+                  );
+                  imageView.setLayoutParams(imageParams);
+                  imageView.setBackgroundColor(Color.parseColor("#1e1e1e"));
+                  layout.addView(imageView);
+
+                  Button selectBtn = new Button(this);
+                  selectBtn.setText("選擇相片");
+                  selectBtn.setBackgroundColor(Color.parseColor("#E30613"));
+                  selectBtn.setTextColor(Color.WHITE);
+                  selectBtn.setOnClickListener(v -> {
+                      Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                      startActivityForResult(intent, PICK_IMAGE);
+                  });
+                  LinearLayout.LayoutParams btnParams = new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                  );
+                  btnParams.setMargins(0, 30, 0, 20);
+                  selectBtn.setLayoutParams(btnParams);
+                  layout.addView(selectBtn);
+
+                  Button watermarkBtn = new Button(this);
+                  watermarkBtn.setText("加上徠卡浮水印並儲存");
+                  watermarkBtn.setBackgroundColor(Color.parseColor("#333333"));
+                  watermarkBtn.setTextColor(Color.WHITE);
+                  watermarkBtn.setOnClickListener(v -> {
+                      if (selectedBitmap != null) {
+                          Bitmap watermarked = addLeicaWatermark(selectedBitmap);
+                          imageView.setImageBitmap(watermarked);
+                          saveImageToGallery(watermarked);
+                          Toast.makeText(this, "浮水印已加入並儲存至相簿！", Toast.LENGTH_SHORT).show();
+                      } else {
+                          Toast.makeText(this, "請先選擇一張相片！", Toast.LENGTH_SHORT).show();
+                      }
+                  });
+                  watermarkBtn.setLayoutParams(btnParams);
+                  layout.addView(watermarkBtn);
 
                   setContentView(layout);
+              }
+
+              @Override
+              protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                  super.onActivityResult(requestCode, resultCode, data);
+                  if (requestCode == PICK_IMAGE && resultCode == RESULT_OK && data != null) {
+                      Uri imageUri = data.getData();
+                      try {
+                          InputStream imageStream = getContentResolver().openInputStream(imageUri);
+                          selectedBitmap = BitmapFactory.decodeStream(imageStream);
+                          imageView.setImageBitmap(selectedBitmap);
+                      } catch (Exception e) {
+                          e.printStackTrace();
+                      }
+                  }
+              }
+
+              private Bitmap addLeicaWatermark(Bitmap src) {
+                  int w = src.getWidth();
+                  int h = src.getHeight();
+                  int watermarkHeight = Math.max(140, h / 8);
+
+                  Bitmap result = Bitmap.createBitmap(w, h + watermarkHeight, src.getConfig());
+                  Canvas canvas = new Canvas(result);
+                  canvas.drawBitmap(src, 0, 0, null);
+
+                  Paint bgPaint = new Paint();
+                  bgPaint.setColor(Color.parseColor("#121212"));
+                  canvas.drawRect(0, h, w, h + watermarkHeight, bgPaint);
+
+                  Paint textPaintRed = new Paint();
+                  textPaintRed.setColor(Color.parseColor("#E30613"));
+                  textPaintRed.setTextSize(watermarkHeight * 0.38f);
+                  textPaintRed.setFakeBoldText(true);
+                  textPaintRed.setAntiAlias(true);
+                  canvas.drawText("LEICA", 40, h + watermarkHeight * 0.62f, textPaintRed);
+
+                  Paint textPaintWhite = new Paint();
+                  textPaintWhite.setColor(Color.WHITE);
+                  textPaintWhite.setTextSize(watermarkHeight * 0.25f);
+                  textPaintWhite.setAntiAlias(true);
+                  canvas.drawText("LEICA M11  |  SUMMILUX-M 50mm f/1.4 ASPH", 40, h + watermarkHeight * 0.88f, textPaintWhite);
+
+                  return result;
+              }
+
+              private void saveImageToGallery(Bitmap bitmap) {
+                  try {
+                      MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "LeicaWatermark_" + System.currentTimeMillis(), "Leica Watermark Image");
+                  } catch (Exception e) {
+                      e.printStackTrace();
+                  }
               }
           }
           EOF
