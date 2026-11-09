@@ -18,10 +18,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-    - name: Setup Gradle 8.5
-      uses: gradle/actions/setup-gradle@v3
-      with:
-          gradle-version: '8.5'
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Gradle
+      run: sudo apt-get update && sudo apt-get install -y gradle
 
     - name: Build Debug APK
       run: gradle assembleDebug
