@@ -7,15 +7,31 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cirruslabs/android-sdk:34
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+          distribution: 'temurin'
+          java-version: '17'
+
+    - name: Setup Gradle 8.5
+      uses: gradle/actions/setup-gradle@v3
+      with:
+          gradle-version: '8.5'
+
     - name: Build Debug APK
       run: |
+        # 自動建立 Android SDK 授權檔案，避免授權中斷
+        export ANDROID_HOME=$ANDROID_SDK_ROOT
+        mkdir -p $ANDROID_HOME/licenses
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+        echo -e "\n24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
+
+        # 檢查並生成 Gradle Wrapper
         if [ ! -f ./gradlew ]; then
           gradle wrapper --gradle-version 8.5
         fi
