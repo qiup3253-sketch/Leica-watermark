@@ -75,7 +75,7 @@ jobs:
         }
         EOF
 
-        # 3. app/build.gradle (已補上必要的 namespace)
+        # 3. app/build.gradle
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -175,8 +175,8 @@ jobs:
         </LinearLayout>
         EOF
 
-        # 開始編譯
-        gradle assembleDebug
+        # 帶有 stacktrace 的編譯指令，以便查看完整錯誤
+        gradle assembleDebug --stacktrace
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
