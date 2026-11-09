@@ -43,9 +43,8 @@ jobs:
         # 安全安裝編譯工具並自動接受授權
         yes | head -n 40 | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
 
-        # 自動建立完整專案資料夾結構
+        # 自動建立專案資料夾結構
         mkdir -p app/src/main/java/com/leica/watermark
-        mkdir -p app/src/main/res/layout
         mkdir -p gradle/wrapper
 
         # 1. 根目錄 settings.gradle
@@ -76,14 +75,14 @@ jobs:
         }
         EOF
 
-        # 3. gradle.properties (確保啟用 AndroidX 與足夠的 JVM 記憶體)
+        # 3. gradle.properties
         cat << 'EOF' > gradle.properties
         android.useAndroidX=true
         android.enableJetifier=true
         org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
         EOF
 
-        # 4. gradle-wrapper.properties (補齊包裝設定檔)
+        # 4. gradle-wrapper.properties
         cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
@@ -92,7 +91,7 @@ jobs:
         zipStorePath=wrapper/dists
         EOF
 
-        # 5. app/build.gradle
+        # 5. app/build.gradle (完全零相依性，杜絕編譯衝突)
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -114,7 +113,6 @@ jobs:
             buildTypes {
                 release {
                     minifyEnabled false
-                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
                 }
             }
             compileOptions {
@@ -127,10 +125,7 @@ jobs:
         }
 
         dependencies {
-            implementation 'androidx.core:core-ktx:1.9.0'
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.8.0'
-            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+            // 零外部套件，徹底避免編譯失敗
         }
         EOF
 
@@ -141,8 +136,7 @@ jobs:
             <application
                 android:allowBackup="true"
                 android:label="Leica Watermark"
-                android:supportsRtl="true"
-                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                android:supportsRtl="true">
                 <activity
                     android:name=".MainActivity"
                     android:exported="true">
@@ -155,50 +149,41 @@ jobs:
         </manifest>
         EOF
 
-        # 7. MainActivity.kt
+        # 7. MainActivity.kt (使用純 Kotlin 原生程式碼動態建立徠卡黑紅風格畫面)
         cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
         package com.leica.watermark
 
+        import android.app.Activity
+        import android.graphics.Color
+        import android.graphics.Typeface
         import android.os.Bundle
-        import androidx.appcompat.app.AppCompatActivity
+        import android.view.Gravity
+        import android.widget.LinearLayout
+        import android.widget.TextView
 
-        class MainActivity : AppCompatActivity() {
+        class MainActivity : Activity() {
             override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
-                setContentView(R.layout.activity_main)
+
+                val layout = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    setBackgroundColor(Color.parseColor("#121212"))
+                    setPadding(50, 50, 50, 50)
+                }
+
+                val textView = TextView(this).apply {
+                    text = "LEICA WATERMARK"
+                    setTextColor(Color.parseColor("#E30613"))
+                    textSize = 24f
+                    setTypeface(null, Typeface.BOLD)
+                    gravity = Gravity.CENTER
+                }
+
+                layout.addView(textView)
+                setContentView(layout)
             }
         }
         EOF
 
-        # 8. 介面 XML (徠卡黑紅風格)
-        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
-        <?xml version="1.0" encoding="utf-8"?>
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#121212"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="LEICA WATERMARK"
-                android:textColor="#E30613"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-        EOF
-
-        # 產生 Wrapper 並使用 --info 執行編譯
-        gradle wrapper --gradle-version 7.5 --distribution-type bin
-        chmod +x ./gradlew
-        ./gradlew assembleDebug --info
-
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+        # 
