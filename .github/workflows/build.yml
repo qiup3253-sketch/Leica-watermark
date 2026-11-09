@@ -18,20 +18,20 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-    - name: Setup Gradle 8.5
-      uses: gradle/actions/setup-gradle@v3
-      with:
-          gradle-version: '8.5'
+    - name: Install Gradle 8.5
+      run: |
+        wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+        unzip -q gradle-8.5-bin.zip
+        echo "$PWD/gradle-8.5/bin" >> $GITHUB_PATH
 
-    - name: Build APK with Built-in SDK
+    - name: Generate Project & Build APK
       run: |
         # 設定 Android SDK 路徑
         export ANDROID_HOME=/usr/local/lib/android/sdk
         echo "sdk.dir=$ANDROID_HOME" > local.properties
 
         # 自動同意授權並安裝編譯所需的 API 34 與 Build Tools
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses \vert{}\vert{} true$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
         # 自動建立專案資料夾與檔案
         mkdir -p app/src/main/java/com/leica/watermark
@@ -136,42 +136,4 @@ jobs:
         import androidx.appcompat.app.AppCompatActivity
 
         class MainActivity : AppCompatActivity() {
-            override fun onCreate(savedInstanceState: Bundle?) {
-                super.onCreate(savedInstanceState)
-                setContentView(R.layout.activity_main)
-            }
-        }
-        EOF
-
-        # 6. 介面 XML (徠卡黑紅風格)
-        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
-        <?xml version="1.0" encoding="utf-8"?>
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#121212"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="LEICA WATERMARK"
-                android:textColor="#E30613"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-        EOF
-
-        # 產生 Wrapper 並開始編譯
-        gradle wrapper --gradle-version 8.5
-        chmod +x ./gradlew
-        ./gradlew assembleDebug
-
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+            
