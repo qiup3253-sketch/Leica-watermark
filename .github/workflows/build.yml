@@ -43,9 +43,10 @@ jobs:
         # 安全安裝編譯工具並自動接受授權
         yes | head -n 40 | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
 
-        # 自動建立專案資料夾與檔案
+        # 自動建立完整專案資料夾結構
         mkdir -p app/src/main/java/com/leica/watermark
         mkdir -p app/src/main/res/layout
+        mkdir -p gradle/wrapper
 
         # 1. 根目錄 settings.gradle
         cat << 'EOF' > settings.gradle
@@ -75,7 +76,23 @@ jobs:
         }
         EOF
 
-        # 3. app/build.gradle
+        # 3. gradle.properties (確保啟用 AndroidX 與足夠的 JVM 記憶體)
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+        EOF
+
+        # 4. gradle-wrapper.properties (補齊包裝設定檔)
+        cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
+        distributionBase=GRADLE_USER_HOME
+        distributionPath=wrapper/dists
+        distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-bin.zip
+        zipStoreBase=GRADLE_USER_HOME
+        zipStorePath=wrapper/dists
+        EOF
+
+        # 5. app/build.gradle
         cat << 'EOF' > app/build.gradle
         plugins {
             id 'com.android.application'
@@ -117,7 +134,7 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml
+        # 6. AndroidManifest.xml
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -138,7 +155,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. MainActivity.kt
+        # 7. MainActivity.kt
         cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
         package com.leica.watermark
 
@@ -153,7 +170,7 @@ jobs:
         }
         EOF
 
-        # 6. 介面 XML (徠卡黑紅風格)
+        # 8. 介面 XML (徠卡黑紅風格)
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -175,8 +192,10 @@ jobs:
         </LinearLayout>
         EOF
 
-        # 帶有 stacktrace 的編譯指令，以便查看完整錯誤
-        gradle assembleDebug --stacktrace
+        # 產生 Wrapper 並使用 --info 執行編譯
+        gradle wrapper --gradle-version 7.5 --distribution-type bin
+        chmod +x ./gradlew
+        ./gradlew assembleDebug --info
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
