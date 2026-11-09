@@ -67,11 +67,10 @@ jobs:
           include(':app')
           EOF
 
-          # 2. 根目錄 build.gradle
+          # 2. 根目錄 build.gradle (純 Java，不需 Kotlin 外掛)
           cat << 'EOF' > build.gradle
           plugins {
               id 'com.android.application' version '7.4.2' apply false
-              id 'org.jetbrains.kotlin.android' version '1.8.0' apply false
           }
           EOF
 
@@ -95,7 +94,6 @@ jobs:
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
-              id 'org.jetbrains.kotlin.android'
           }
 
           android {
@@ -119,13 +117,9 @@ jobs:
                   sourceCompatibility JavaVersion.VERSION_11
                   targetCompatibility JavaVersion.VERSION_11
               }
-              kotlinOptions {
-                  jvmTarget = '11'
-              }
           }
 
           dependencies {
-              implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0"
           }
           EOF
 
@@ -149,33 +143,34 @@ jobs:
           </manifest>
           EOF
 
-          # 7. MainActivity.kt
-          cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
-          package com.leica.watermark
+          # 7. MainActivity.java (改用純 Java 寫法，完美避開 Kotlin 編譯器崩潰)
+          cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.java
+          package com.leica.watermark;
 
-          import android.app.Activity
-          import android.graphics.Color
-          import android.os.Bundle
-          import android.view.Gravity
-          import android.widget.LinearLayout
-          import android.widget.TextView
+          import android.app.Activity;
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.Gravity;
+          import android.widget.LinearLayout;
+          import android.widget.TextView;
 
-          class MainActivity : Activity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
 
-                  val layout = LinearLayout(this)
-                  layout.orientation = LinearLayout.VERTICAL
-                  layout.gravity = Gravity.CENTER
-                  layout.setBackgroundColor(Color.parseColor("#121212"))
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setGravity(Gravity.CENTER);
+                  layout.setBackgroundColor(Color.parseColor("#121212"));
 
-                  val textView = TextView(this)
-                  textView.text = "LEICA WATERMARK"
-                  textView.setTextColor(Color.parseColor("#E30613"))
-                  textView.textSize = 24f
-                  layout.addView(textView)
+                  TextView textView = new TextView(this);
+                  textView.setText("LEICA WATERMARK");
+                  textView.setTextColor(Color.parseColor("#E30613"));
+                  textView.setTextSize(24f);
+                  layout.addView(textView);
 
-                  setContentView(layout)
+                  setContentView(layout);
               }
           }
           EOF
