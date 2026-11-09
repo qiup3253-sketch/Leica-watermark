@@ -30,8 +30,18 @@ jobs:
         export ANDROID_HOME=/usr/local/lib/android/sdk
         echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-        # 自動同意授權並安裝編譯所需的 API 34 與 Build Tools
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses \vert{}\vert{} true$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        # 直接寫入所有 Android SDK 官方授權碼（徹底避開 Broken pipe 錯誤）
+        mkdir -p $ANDROID_HOME/licenses
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+        echo "d56f5187479451eabf01fb78af6dfcb139a648b0" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "209931210452fcf15ff72d0b005118eb3009a258" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "504667d4c0d7af102bf2c16c5929497e171f28b9" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "e9acab5b5f2530622ccee4d31e457f4951b73f8b" >> $ANDROID_HOME/licenses/android-sdk-license
+
+        # 安裝編譯所需的 API 34 與 Build Tools
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-34" "build-tools;34.0.0" || true
 
         # 自動建立專案資料夾與檔案
         mkdir -p app/src/main/java/com/leica/watermark
@@ -136,4 +146,42 @@ jobs:
         import androidx.appcompat.app.AppCompatActivity
 
         class MainActivity : AppCompatActivity() {
-            
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                setContentView(R.layout.activity_main)
+            }
+        }
+        EOF
+
+        # 6. 介面 XML (徠卡黑紅風格)
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#121212"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LEICA WATERMARK"
+                android:textColor="#E30613"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+        EOF
+
+        # 產生 Wrapper 並開始編譯
+        gradle wrapper --gradle-version 8.5
+        chmod +x ./gradlew
+        ./gradlew assembleDebug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
