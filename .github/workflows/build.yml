@@ -116,7 +116,7 @@ jobs:
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application
-                android:allowBackup="true"
+                id:allowBackup="true"
                 android:label="Leica Watermark"
                 android:supportsRtl="true"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar">
@@ -132,7 +132,7 @@ jobs:
         </manifest>
         EOF
 
-        # 5. MainActivity.kt (已修正語法錯誤)
+        # 5. MainActivity.kt
         cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
         package com.leica.watermark
 
@@ -169,10 +169,8 @@ jobs:
         </LinearLayout>
         EOF
 
-        # 產生 Wrapper 並開始編譯
-        gradle wrapper --gradle-version 7.5
-        chmod +x ./gradlew
-        ./gradlew assembleDebug
+        # 直接使用全域安裝好的 gradle 進行編譯，避開 wrapper 下載逾時
+        gradle assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
