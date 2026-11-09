@@ -9,74 +9,184 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
           distribution: 'temurin'
           java-version: '17'
 
-    - name: Install Gradle 7.5
-      run: |
-        wget -q https://services.gradle.org/distributions/gradle-7.5-bin.zip
-        unzip -q gradle-7.5-bin.zip
-        echo "$PWD/gradle-7.5/bin" >> $GITHUB_PATH
+      - name: Install Gradle 7.5
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-7.5-bin.zip
+          unzip -q gradle-7.5-bin.zip
+          echo "$PWD/gradle-7.5/bin" >> $GITHUB_PATH
 
-    - name: Generate Project & Build APK
-      run: |
-        # 設定 Android SDK 路徑
-        export ANDROID_HOME=/usr/local/lib/android/sdk
-        echo "sdk.dir=$ANDROID_HOME" > local.properties
+      - name: Generate Project & Build APK
+        run: |
+          # 設定 Android SDK 路徑
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-        # 完整寫入所有 Android SDK 官方授權碼
-        mkdir -p $ANDROID_HOME/licenses
-        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
-        echo "d56f5187479451eabf01fb78af6dfcb139a648b0" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "209931210452fcf15ff72d0b005118eb3009a258" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "504667d4c0d7af102bf2c16c5929497e171f28b9" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "e9acab5b5f2530622ccee4d31e457f4951b73f8b" >> $ANDROID_HOME/licenses/android-sdk-license
+          # 完整寫入所有 Android SDK 官方授權碼
+          mkdir -p $ANDROID_HOME/licenses
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+          echo "d56f5187479451eabf01fb78af6dfcb139a648b0" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "209931210452fcf15ff72d0b005118eb3009a258" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "504667d4c0d7af102bf2c16c5929497e171f28b9" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "e9acab5b5f2530622ccee4d31e457f4951b73f8b" >> $ANDROID_HOME/licenses/android-sdk-license
 
-        # 安全安裝編譯工具並自動接受授權
-        yes | head -n 40 | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
+          # 安全安裝編譯工具並自動接受授權
+          yes | head -n 40 | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
 
-        # 自動建立專案資料夾結構
-        mkdir -p app/src/main/java/com/leica/watermark
-        mkdir -p gradle/wrapper
+          # 自動建立專案資料夾結構
+          mkdir -p app/src/main/java/com/leica/watermark
+          mkdir -p gradle/wrapper
 
-        # 1. 根目錄 settings.gradle
-        cat << 'EOF' > settings.gradle
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-rootProject.name = "Leica Watermark"
-include(':app')
-EOF
+          # 1. 根目錄 settings.gradle
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "Leica Watermark"
+          include(':app')
+          EOF
 
-        # 2. 根目錄 build.gradle
-        cat << 'EOF' > build.gradle
-plugins {
-    id 'com.android.application' version '7.4.2' apply false
-    id 'org.jetbrains.kotlin.android' version '1.8.0' apply false
-}
-EOF
+          # 2. 根目錄 build.gradle
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '7.4.2' apply false
+              id 'org.jetbrains.kotlin.android' version '1.8.0' apply false
+          }
+          EOF
 
-        # 3. gradle.properties
-        cat << 'EOF' > gradle.properties
-android.useAndroidX=true
-android.enableJetifier=true
-org.gradle.jvmargs
+          # 3. gradle.properties
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
+
+          # 4. gradle-wrapper.properties
+          cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+          # 5. app/build.gradle
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
+
+          android {
+              namespace 'com.leica.watermark'
+              compileSdk 33
+
+              defaultConfig {
+                  applicationId "com.leica.watermark"
+                  minSdk 24
+                  targetSdk 33
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_11
+                  targetCompatibility JavaVersion.VERSION_11
+              }
+              kotlinOptions {
+                  jvmTarget = '11'
+              }
+          }
+
+          dependencies {
+              implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0"
+          }
+          EOF
+
+          # 6. AndroidManifest.xml
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:allowBackup="true"
+                  android:label="Leica Watermark"
+                  android:supportsRtl="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # 7. MainActivity.kt
+          cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
+          package com.leica.watermark
+
+          import android.app.Activity
+          import android.graphics.Color
+          import android.os.Bundle
+          import android.view.Gravity
+          import android.widget.LinearLayout
+          import android.widget.TextView
+
+          class MainActivity : Activity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+
+                  val layout = LinearLayout(this)
+                  layout.orientation = LinearLayout.VERTICAL
+                  layout.gravity = Gravity.CENTER
+                  layout.setBackgroundColor(Color.parseColor("#121212"))
+
+                  val textView = TextView(this)
+                  textView.text = "LEICA WATERMARK"
+                  textView.setTextColor(Color.parseColor("#E30613"))
+                  textView.textSize = 24f
+                  layout.addView(textView)
+
+                  setContentView(layout)
+              }
+          }
+          EOF
+
+          # 產生 Wrapper 並開始編譯
+          gradle wrapper --gradle-version 7.5 --distribution-type bin
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
