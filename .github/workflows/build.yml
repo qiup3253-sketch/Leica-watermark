@@ -18,16 +18,20 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
     - name: Setup Gradle 8.5
       uses: gradle/actions/setup-gradle@v3
       with:
           gradle-version: '8.5'
 
-    - name: Generate Project Structure & Build APK
+    - name: Generate Project & Build APK
       run: |
+        # 直接使用主機內建的 Android SDK 並自動寫入授權
+        export ANDROID_HOME=/usr/local/lib/android/sdk
+        echo "sdk.dir=$ANDROID_HOME" > local.properties
+        mkdir -p $ANDROID_HOME/licenses
+        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
+        echo -e "\n24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
+
         # 自動建立專案資料夾
         mkdir -p app/src/main/java/com/leica/watermark
         mkdir -p app/src/main/res/layout
