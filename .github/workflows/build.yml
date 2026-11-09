@@ -25,14 +25,13 @@ jobs:
 
     - name: Build APK with Built-in SDK
       run: |
-        # 直接使用 GitHub 主機內建的 Android SDK，完全不依賴外掛
+        # 設定 Android SDK 路徑
         export ANDROID_HOME=/usr/local/lib/android/sdk
         echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-        # 自動寫入 Android SDK 授權協議
-        mkdir -p $ANDROID_HOME/licenses
-        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
-        echo -e "\n24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
+        # 自動同意授權並安裝編譯所需的 API 34 與 Build Tools
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
         # 自動建立專案資料夾與檔案
         mkdir -p app/src/main/java/com/leica/watermark
