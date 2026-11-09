@@ -34,7 +34,9 @@ jobs:
         mkdir -p $ANDROID_HOME/licenses
         echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
         echo "d56f5187479451eabf01fb78af6dfcb139a648b0" >> $ANDROID_HOME/licenses/android-sdk-license
-        echo "24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
+        echo "24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
+        
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
 
         # 自動建立專案資料夾與檔案
         mkdir -p app/src/main/java/com/leica/watermark
@@ -60,7 +62,7 @@ jobs:
         include(':app')
         EOF
 
-        # 2. 根目錄 build.gradle (使用穩定的 7.4.2 版本)
+        # 2. 根目錄 build.gradle
         cat << 'EOF' > build.gradle
         plugins {
             id 'com.android.application' version '7.4.2' apply false
@@ -114,4 +116,68 @@ jobs:
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application
-                android:
+                android:allowBackup="true"
+                android:label="Leica Watermark"
+                android:supportsRtl="true"
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # 5. MainActivity.kt
+        cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
+        package com.leica.watermark
+
+        id 'kotlin-android'
+        import android.os.Bundle
+        import androidx.appcompat.app.AppCompatActivity
+
+        class MainActivity : AppCompatActivity() {
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                setContentView(R.layout.activity_main)
+            }
+        }
+        EOF
+
+        # 6. 介面 XML (徠卡黑紅風格)
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#121212"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LEICA WATERMARK"
+                android:textColor="#E30613"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+        EOF
+
+        # 產生 Wrapper 並開始編譯
+        gradle wrapper --gradle-version 7.5
+        chmod +x ./gradlew
+        ./gradlew assembleDebug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
