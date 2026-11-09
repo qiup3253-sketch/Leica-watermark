@@ -21,13 +21,18 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Download and Setup Gradle 8.5
-      run: |
-        wget https://services.gradle.org/distributions/gradle-8.5-bin.zip
-        unzip -q gradle-8.5-bin.zip
+    - name: Setup Gradle 8.5
+      uses: gradle/actions/setup-gradle@v3
+      with:
+          gradle-version: '8.5'
 
-    - name: Build Debug APK
-      run: ./gradle-8.5/bin/gradle assembleDebug
+    - name: Auto Fix & Build APK
+      run: |
+        if [ ! -f ./gradlew ]; then
+          gradle wrapper --gradle-version 8.5
+        fi
+        chmod +x ./gradlew
+        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
