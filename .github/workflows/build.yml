@@ -23,18 +23,142 @@ jobs:
       with:
           gradle-version: '8.5'
 
-    - name: Build Debug APK
+    - name: Generate Project Structure & Build APK
       run: |
-        # 設定內建的 Android SDK 路徑與自動授權
-        export ANDROID_HOME=/usr/local/lib/android/sdk
-        mkdir -p $ANDROID_HOME/licenses
-        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
-        echo -e "\n24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
+        # 自動建立專案資料夾
+        mkdir -p app/src/main/java/com/leica/watermark
+        mkdir -p app/src/main/res/layout
 
-        # 自動生成編譯工具並開始打包
-        if [ ! -f ./gradlew ]; then
-          gradle wrapper --gradle-version 8.5
-        fi
+        # 1. 根目錄 settings.gradle
+        cat << 'EOF' > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "Leica Watermark"
+        include(':app')
+        EOF
+
+        # 2. 根目錄 build.gradle
+        cat << 'EOF' > build.gradle
+        plugins {
+            id 'com.android.application' version '8.2.0' apply false
+            id 'org.jetbrains.kotlin.android' version '1.9.0' apply false
+        }
+        EOF
+
+        # 3. app/build.gradle
+        cat << 'EOF' > app/build.gradle
+        plugins {
+            id 'com.android.application'
+            id 'org.jetbrains.kotlin.android'
+        }
+
+        android {
+            namespace 'com.leica.watermark'
+            compileSdk 34
+
+            defaultConfig {
+                applicationId "com.leica.watermark"
+                minSdk 24
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                }
+            }
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+                jvmTarget = '17'
+            }
+        }
+
+        dependencies {
+            implementation 'androidx.core:core-ktx:1.12.0'
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
+            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+        }
+        EOF
+
+        # 4. AndroidManifest.xml
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application
+                android:allowBackup="true"
+                android:label="Leica Watermark"
+                android:supportsRtl="true"
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+
+        # 5. MainActivity.kt
+        cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
+        package com.leica.watermark
+
+        import android.os.Bundle
+        import androidx.appcompat.app.AppCompatActivity
+
+        class MainActivity : AppCompatActivity() {
+            override fun onCreate(savedInstanceState: Bundle?) {
+                super.onCreate(savedInstanceState)
+                setContentView(R.layout.activity_main)
+            }
+        }
+        EOF
+
+        # 6. 介面 XML (徠卡黑紅風格)
+        cat << 'EOF' > app/src/main/res/layout/activity_main.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#121212"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LEICA WATERMARK"
+                android:textColor="#E30613"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+        EOF
+
+        # 產生 Wrapper 並開始編譯
+        gradle wrapper --gradle-version 8.5
         chmod +x ./gradlew
         ./gradlew assembleDebug
 
