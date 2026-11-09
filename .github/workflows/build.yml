@@ -18,6 +18,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+          items: 'platforms;android-34,build-tools;34.0.0'
+
     - name: Setup Gradle 8.5
       uses: gradle/actions/setup-gradle@v3
       with:
@@ -25,13 +30,6 @@ jobs:
 
     - name: Generate Project & Build APK
       run: |
-        # 直接使用主機內建的 Android SDK 並自動寫入授權
-        export ANDROID_HOME=/usr/local/lib/android/sdk
-        echo "sdk.dir=$ANDROID_HOME" > local.properties
-        mkdir -p $ANDROID_HOME/licenses
-        echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
-        echo -e "\n24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
-
         # 自動建立專案資料夾
         mkdir -p app/src/main/java/com/leica/watermark
         mkdir -p app/src/main/res/layout
@@ -145,32 +143,4 @@ jobs:
         # 6. 介面 XML (徠卡黑紅風格)
         cat << 'EOF' > app/src/main/res/layout/activity_main.xml
         <?xml version="1.0" encoding="utf-8"?>
-        <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#121212"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="24dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="LEICA WATERMARK"
-                android:textColor="#E30613"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-        EOF
-
-        # 產生 Wrapper 並開始編譯
-        gradle wrapper --gradle-version 8.5
-        chmod +x ./gradlew
-        ./gradlew assembleDebug
-
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+        <LinearLayout
