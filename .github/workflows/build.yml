@@ -132,11 +132,10 @@ jobs:
         </manifest>
         EOF
 
-        # 5. MainActivity.kt
+        # 5. MainActivity.kt (已修正語法錯誤)
         cat << 'EOF' > app/src/main/java/com/leica/watermark/MainActivity.kt
         package com.leica.watermark
 
-        id 'kotlin-android'
         import android.os.Bundle
         import androidx.appcompat.app.AppCompatActivity
 
@@ -180,4 +179,3 @@ jobs:
       with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
-          
