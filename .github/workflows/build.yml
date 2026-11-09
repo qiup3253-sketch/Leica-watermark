@@ -30,13 +30,18 @@ jobs:
         export ANDROID_HOME=/usr/local/lib/android/sdk
         echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-        # 寫入 SDK 授權並安裝編譯工具
+        # 完整寫入所有 Android SDK 官方授權碼
         mkdir -p $ANDROID_HOME/licenses
         echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
         echo "d56f5187479451eabf01fb78af6dfcb139a648b0" >> $ANDROID_HOME/licenses/android-sdk-license
         echo "24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
-        
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
+        echo "84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "209931210452fcf15ff72d0b005118eb3009a258" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "504667d4c0d7af102bf2c16c5929497e171f28b9" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "e9acab5b5f2530622ccee4d31e457f4951b73f8b" >> $ANDROID_HOME/licenses/android-sdk-license
+
+        # 安全安裝編譯工具並自動接受授權
+        yes | head -n 40 | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-33" "build-tools;33.0.2" || true
 
         # 自動建立專案資料夾與檔案
         mkdir -p app/src/main/java/com/leica/watermark
@@ -111,12 +116,12 @@ jobs:
         }
         EOF
 
-        # 4. AndroidManifest.xml
+        # 4. AndroidManifest.xml (已修正語法錯誤)
         cat << 'EOF' > app/src/main/AndroidManifest.xml
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application
-                id:allowBackup="true"
+                android:allowBackup="true"
                 android:label="Leica Watermark"
                 android:supportsRtl="true"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar">
@@ -169,7 +174,7 @@ jobs:
         </LinearLayout>
         EOF
 
-        # 直接使用全域安裝好的 gradle 進行編譯，避開 wrapper 下載逾時
+        # 開始編譯
         gradle assembleDebug
 
     - name: Upload APK Artifact
