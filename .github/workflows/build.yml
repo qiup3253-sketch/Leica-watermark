@@ -25,13 +25,13 @@ jobs:
 
     - name: Build Debug APK
       run: |
-        # 自動建立 Android SDK 授權檔案，避免授權中斷
-        export ANDROID_HOME=$ANDROID_SDK_ROOT
+        # 設定內建的 Android SDK 路徑與自動授權
+        export ANDROID_HOME=/usr/local/lib/android/sdk
         mkdir -p $ANDROID_HOME/licenses
         echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license
         echo -e "\n24333f1a4ab60c576f85252b472e38c95213b33e" >> $ANDROID_HOME/licenses/android-sdk-license
 
-        # 檢查並生成 Gradle Wrapper
+        # 自動生成編譯工具並開始打包
         if [ ! -f ./gradlew ]; then
           gradle wrapper --gradle-version 8.5
         fi
